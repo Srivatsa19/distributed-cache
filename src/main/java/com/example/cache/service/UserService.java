@@ -1,7 +1,7 @@
 package com.example.cache.service;
 
 import com.example.cache.cache.LocalUserCache;
-import com.example.cache.invalidation.CacheInvalidationClient;
+import com.example.cache.invalidation.CacheInvalidationPublisher;
 import com.example.cache.model.User;
 import com.example.cache.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -11,16 +11,12 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final LocalUserCache cache;
-    private final CacheInvalidationClient invalidationClient;
+    private final CacheInvalidationPublisher invalidationPublisher;
 
-    public UserService(
-            UserRepository userRepository,
-            LocalUserCache cache,
-            CacheInvalidationClient invalidationClient
-    ) {
+    public UserService(UserRepository userRepository, LocalUserCache cache, CacheInvalidationPublisher invalidationPublisher) {
         this.userRepository = userRepository;
         this.cache = cache;
-        this.invalidationClient = invalidationClient;
+        this.invalidationPublisher = invalidationPublisher;
     }
 
     public User getUser(long id) {
@@ -33,9 +29,7 @@ public class UserService {
         }
 
         System.out.println("CACHE MISS: user=" + id);
-
         User user = userRepository.findById(id);
-
         cache.put(user);
 
         return user;
@@ -44,16 +38,13 @@ public class UserService {
     public void updateUser(long id, String name) {
 
         System.out.println("Updating DB: user=" + id);
-
         userRepository.updateName(id, name);
 
         System.out.println("Invalidating LOCAL cache: user=" + id);
-
         cache.delete(id);
 
-        System.out.println("Invalidating caches on other instances....");
-
-        invalidationClient.invalidateUser(id);
+        System.out.println("Publishing invalidation: user : " + id);
+        invalidationPublisher.publishUserInvalidation(id);
 
     }
 
