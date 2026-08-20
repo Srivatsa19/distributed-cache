@@ -1,7 +1,7 @@
 package com.example.cache.service;
 
 import com.example.cache.cache.LocalUserCache;
-import com.example.cache.invalidation.CacheInvalidationPublisher;
+import com.example.cache.invalidation.CacheInvalidationStreamPublisher;
 import com.example.cache.model.User;
 import com.example.cache.repository.UserRepository;
 import org.springframework.stereotype.Service;
@@ -11,12 +11,12 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final LocalUserCache cache;
-    private final CacheInvalidationPublisher invalidationPublisher;
+    private final CacheInvalidationStreamPublisher streamPublisher;
 
-    public UserService(UserRepository userRepository, LocalUserCache cache, CacheInvalidationPublisher invalidationPublisher) {
+    public UserService(UserRepository userRepository, LocalUserCache cache, CacheInvalidationStreamPublisher streamPublisher) {
         this.userRepository = userRepository;
         this.cache = cache;
-        this.invalidationPublisher = invalidationPublisher;
+        this.streamPublisher = streamPublisher;
     }
 
     public User getUser(long id) {
@@ -43,8 +43,8 @@ public class UserService {
         System.out.println("Invalidating LOCAL cache: user=" + id);
         cache.delete(id);
 
-        System.out.println("Publishing invalidation: user : " + id);
-        invalidationPublisher.publishUserInvalidation(id);
+        System.out.println("Publishing invalidation event: user : " + id);
+        streamPublisher.publishUserInvalidation(id);
 
     }
 
