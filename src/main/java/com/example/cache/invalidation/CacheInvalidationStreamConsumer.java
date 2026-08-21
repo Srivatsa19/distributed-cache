@@ -23,9 +23,10 @@ public class CacheInvalidationStreamConsumer implements StreamListener<String, M
 
     @Override
     public void onMessage(MapRecord<String, String, String> message) {
-        System.out.println("Received stream event : " + message.getId() + " -> " +  message.getValue());
+        String eventId = message.getValue().get("eventId");
         String entityType = message.getValue().get("entityType");
         String entityId = message.getValue().get("entityId");
+        System.out.println("Processing eventId=" + eventId + ", redisId=" + message.getId());
         if (Objects.equals("USER", entityType)) {
             long userId = Long.parseLong(entityId);
             localUserCache.delete(userId);

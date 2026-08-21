@@ -1,22 +1,23 @@
 package com.example.cache.service;
 
 import com.example.cache.cache.LocalUserCache;
-import com.example.cache.invalidation.CacheInvalidationStreamPublisher;
 import com.example.cache.model.User;
+import com.example.cache.repository.OutboxRepository;
 import com.example.cache.repository.UserRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class UserService {
 
     private final UserRepository userRepository;
     private final LocalUserCache cache;
-    private final CacheInvalidationStreamPublisher streamPublisher;
+    private final OutboxRepository outboxRepository;
 
-    public UserService(UserRepository userRepository, LocalUserCache cache, CacheInvalidationStreamPublisher streamPublisher) {
+    public UserService(UserRepository userRepository, LocalUserCache cache, OutboxRepository outboxRepository) {
         this.userRepository = userRepository;
         this.cache = cache;
-        this.streamPublisher = streamPublisher;
+        this.outboxRepository = outboxRepository;
     }
 
     public User getUser(long id) {
@@ -35,18 +36,23 @@ public class UserService {
         return user;
     }
 
+    @Transactional
     public void updateUser(long id, String name) {
 
         System.out.println("Updating DB: user=" + id);
         userRepository.updateName(id, name);
 
-        System.out.println("Invalidating LOCAL cache: user=" + id);
-        cache.delete(id);
+        System.out.println("Inserting outbox event...");
 
-        System.out.println("Publishing invalidation event: user : " + id);
-        streamPublisher.publishUserInvalidation(id);
+        outboxRepository.insert(
+                "USER_UPDATED",
+                "USER",
+                id,
+                """
+                {"entityType":"USER","entityId":%d}
+                """.formatted(id)
+        );
 
     }
-
 
 }
